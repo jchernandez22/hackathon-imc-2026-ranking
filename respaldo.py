@@ -133,6 +133,38 @@ def respaldar_equipos() -> bool:
     return subir("equipos.json", cfg.ARCHIVO_EQUIPOS, "equipos")
 
 
+def borrar(ruta_repo: str, mensaje: str = "limpieza") -> bool:
+    """Borra un archivo del repo de estado. False si no estaba."""
+    if not activo():
+        return False
+    _, repo = _credenciales()
+    actual = _contenidos(ruta_repo)
+    if not isinstance(actual, dict) or "sha" not in actual:
+        return False
+    _api("DELETE", f"/repos/{repo}/contents/{ruta_repo}",
+         {"message": mensaje, "sha": actual["sha"]})
+    return True
+
+
+def limpiar_envios() -> list[str]:
+    """
+    Borra del respaldo el log y todas las submissions. Devuelve lo borrado.
+
+    Existe porque `simular.py --limpiar` solo toca el disco local: sin esto, un
+    envío de prueba hecho contra la app desplegada vuelve en cada reinicio, y el
+    evento arrancaría con datos falsos en el ranking.
+    """
+    borrados = []
+    listado = _contenidos("envios/archivos")
+    for entrada in listado if isinstance(listado, list) else []:
+        ruta = f"envios/archivos/{entrada['name']}"
+        if borrar(ruta, "limpiar envíos de prueba"):
+            borrados.append(ruta)
+    if borrar("envios/log.csv", "limpiar envíos de prueba"):
+        borrados.append("envios/log.csv")
+    return borrados
+
+
 def respaldar_envio(nombre: str) -> bool:
     """El CSV crudo de un envío, más el log que lo referencia."""
     ok = subir(f"envios/archivos/{nombre}", cfg.DIR_ARCHIVOS / nombre,
@@ -204,6 +236,9 @@ def main() -> None:
     p.add_argument("--nombre", default=NOMBRE_POR_DEFECTO)
     p.add_argument("--estado", action="store_true", help="lista lo respaldado")
     p.add_argument("--restaurar", action="store_true", help="repo -> disco")
+    p.add_argument("--limpiar-envios", action="store_true",
+                   help="borra del respaldo el log y las submissions "
+                        "(el ground truth y equipos.json no se tocan)")
     p.add_argument("--subir", action="store_true", help="disco -> repo, todo")
     p.add_argument("--con-envios", action="store_true",
                    help="incluye el log y las submissions (con --crear se omiten: "
@@ -248,6 +283,14 @@ def main() -> None:
         print("\nConfigura esto en Streamlit → Settings → Secrets:\n")
         print(f'  REPO_ESTADO  = "{repo}"')
         print( '  GITHUB_TOKEN = "ghp_..."   # token con scope `repo`')
+
+    if args.limpiar_envios:
+        borrados = limpiar_envios()
+        print("\n".join(f"  ✗ {b}" for b in borrados) if borrados
+              else "El respaldo ya no tenía envíos.")
+        print(f"\n{len(borrados)} borrado(s). El ground truth y equipos.json "
+              "siguen intactos.")
+        print("Reinicia la app en Streamlit para que el ranking quede en blanco.")
 
     if args.restaurar:
         escritos = restaurar()
