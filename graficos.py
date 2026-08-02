@@ -159,6 +159,35 @@ def grafico_progreso(log: pd.DataFrame, metrica: str = cfg.METRICA):
         width="container", height=380).configure(**_tema())
 
 
+def estilo_matriz(matriz: pd.DataFrame) -> "pd.io.formats.style.Styler":
+    """
+    Colorea la matriz de F1 por especie con una rampa secuencial propia.
+
+    Reemplaza a `Styler.background_gradient(cmap="Blues")`, que exige matplotlib:
+    son ~50 MB de build en Streamlit Cloud para pintar celdas, y además la rampa
+    de matplotlib no es la paleta del resto del tablero.
+
+    Un solo tono, claro→oscuro, como corresponde a una escala de magnitud. La
+    mezcla se detiene en 0.75 del azul y no en el azul pleno: a plena intensidad
+    el contraste con la tinta cae a 4.46:1 —bajo el mínimo AA de 4.5— y a 0.75
+    sube a 6.65:1. El número se lee en todas las celdas sin invertir el color del
+    texto, así que la celda nunca depende del color para ser legible.
+    """
+    fondo, tope = (252, 252, 251), (42, 120, 214)          # SUPERFICIE -> AZUL
+
+    def color(v: float) -> str:
+        if pd.isna(v):
+            return ""
+        t = min(max(float(v), 0.0), 1.0) * 0.75
+        r, g, b = (round(f + (c - f) * t) for f, c in zip(fondo, tope))
+        return f"background-color: #{r:02x}{g:02x}{b:02x}"
+
+    return (matriz.style
+            .map(color)
+            .format("{:.2f}")
+            .set_properties(**{"color": cfg.TINTA}))
+
+
 if __name__ == "__main__":
     import almacen
 

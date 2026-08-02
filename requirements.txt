@@ -1,5 +1,5 @@
 streamlit>=1.36
-pandas>=2.0
+pandas>=2.1          # `Styler.map` en graficos.py: se llamaba `applymap` antes de 2.1
 numpy>=1.24
 altair>=5.4          # viene con streamlit; se fija por la API de `alt.when`
 

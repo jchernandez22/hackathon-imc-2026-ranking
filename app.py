@@ -176,8 +176,7 @@ with tab_especies:
                    .reindex(ev.especies).fillna(0).astype(int))
         matriz.index = [f"{sp}  (n={soporte[sp]})" for sp in matriz.index]
 
-        st.dataframe(matriz.style.background_gradient(cmap="Blues", vmin=0, vmax=1)
-                     .format("{:.2f}"), width="stretch")
+        st.dataframe(graficos.estilo_matriz(matriz), width="stretch")
         st.caption(
             "Las especies con n = 1, 2 y 3 son prácticamente inaprendibles en 24 h. "
             "Por eso el ranking usa F1 **micro**: con macro, esas tres decidirían el "
