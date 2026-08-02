@@ -1,0 +1,23 @@
+# Este repo es PÚBLICO. Nada de lo que sigue puede pasar por el historial, ni
+# siquiera un commit que después se revierte: el historial no se limpia.
+#
+# Lo privado vive en otras dos partes: el repo de estado (ver respaldo.py) y los
+# secrets de Streamlit.
+
+# El ground truth NUNCA va al repo: los equipos podrían leerlo.
+datos/
+
+# Los tokens son la contraseña de cada equipo. La plantilla que sí va al repo es
+# equipos.ejemplo.json.
+equipos.json
+
+# Todo lo que la app escribe en vivo: el log del ranking y las submissions
+# subidas. Es estado de ejecución, no código, y el log además revela el
+# rendimiento de cada equipo. Antes solo se ignoraba `envios/archivos/`, así que
+# `envios/log.csv` sí se habría subido. `config.py` recrea las carpetas vacías
+# al importarse, o sea que no hace falta versionarlas.
+envios/
+
+__pycache__/
+.streamlit/secrets.toml
+.DS_Store

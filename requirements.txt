@@ -1,0 +1,11 @@
+streamlit>=1.36
+pandas>=2.0
+numpy>=1.24
+altair>=5.4          # viene con streamlit; se fija por la API de `alt.when`
+
+# `respaldo.py` habla con la API de GitHub por urllib: sin dependencia extra.
+#
+# La vista previa PNG (`python graficos.py`) necesita `vl-convert-python`, que
+# NO va aquí a propósito: son ~30 MB de wheel que alargan el build en Streamlit
+# Cloud y el dashboard no la usa —el import vive dentro de `_png()`, bajo el
+# `__main__`. Si la quieres en local:  pip install vl-convert-python

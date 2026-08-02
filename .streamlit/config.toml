@@ -1,0 +1,13 @@
+# Tema fijo en claro. Sin esto, Streamlit sigue el `prefers-color-scheme` del
+# navegador de cada visitante y en modo oscuro los gráficos —que llevan la
+# paleta cableada en config.py y se pasan con theme=None— quedan como dos
+# rectángulos blancos sobre la página negra.
+#
+# Los colores son los mismos de config.py, para que el fondo del gráfico y el
+# de la página sean el mismo tono y no se note el borde del SVG.
+[theme]
+base = "light"
+primaryColor = "#2a78d6"            # AZUL
+backgroundColor = "#fcfcfb"         # SUPERFICIE
+secondaryBackgroundColor = "#f1f0ea"
+textColor = "#0b0b0b"               # TINTA
