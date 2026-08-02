@@ -186,8 +186,9 @@ con `ngrok` conviene reservar el dominio estático del plan gratis.
 
 El panel de admin marca envíos que conviene mirar de cerca. Ninguna señal es
 descalificación automática: son pistas para decidir a quién revisarle el código.
-**El ranking público es provisional; el final se define tras esa revisión**, y
-conviene anunciarlo desde el inicio.
+**El podio se confirma revisando el código de los tres primeros antes de
+adjudicar**, y conviene anunciarlo en la apertura: es lo que sostiene el esquema
+entero, y decirlo al cerrar se lee como cambiar las reglas.
 
 Qué se marca exactamente **no está en este repositorio**, y es deliberado: es
 público, así que escribirlo aquí sería entregarle a los equipos la receta para no
