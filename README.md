@@ -103,7 +103,11 @@ haya dentro. **Tenlo presente al leer el ranking: dos equipos separados por 0.02
 no están de verdad separados.**
 
 Si al cierre los dos primeros siguen con los intervalos solapados, el desempate
-razonable es F1 macro, y después la revisión de código.
+es **«F1 no visto»** —no F1 macro—. Es la misma clase de número (micro, sin
+promediar por especie, así que no lo mueve una especie de cola acertada por
+casualidad), mide justo lo que el ranking quiere premiar —que el modelo generalizó
+a lo que no venía etiquetado— y es inmune a copiar el entrenamiento. Después de
+eso, la presentación del código.
 
 ## Cuota de envíos
 
@@ -186,9 +190,15 @@ con `ngrok` conviene reservar el dominio estático del plan gratis.
 
 El panel de admin marca envíos que conviene mirar de cerca. Ninguna señal es
 descalificación automática: son pistas para decidir a quién revisarle el código.
-**El podio se confirma revisando el código de los tres primeros antes de
+**El podio se cierra con el código de los tres primeros a la vista antes de
 adjudicar**, y conviene anunciarlo en la apertura: es lo que sostiene el esquema
 entero, y decirlo al cerrar se lee como cambiar las reglas.
+
+Esa instancia no es solo un control antifraude — **pesa en la decisión**. Con
+intervalos de ±0.15, la tabla ordena pero no separa a los de arriba; entre dos
+equipos a centésimas, cómo resolvieron el problema es información de verdad y no
+usarla sería decidir a cara o sello. El orden sigue siendo el que manda para
+entrar al podio: nadie sube por presentar bien.
 
 Qué se marca exactamente **no está en este repositorio**, y es deliberado: es
 público, así que escribirlo aquí sería entregarle a los equipos la receta para no

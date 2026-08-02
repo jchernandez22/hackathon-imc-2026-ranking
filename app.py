@@ -405,8 +405,11 @@ with tab_admin:
                      hide_index=True, width="stretch")
         st.caption(
             "Ninguna de estas señales es descalificación automática: son pistas "
-            "para decidir a quién revisarle el código. **El podio se confirma "
-            "revisando el código de los tres primeros antes de adjudicar.**"
+            "para decidir a quién revisarle el código. **El podio se cierra con el "
+            "código de los tres primeros a la vista antes de adjudicar**, y esa "
+            "instancia pesa en la decisión: con intervalos de ±0.15 la tabla ordena "
+            "pero no separa a los de arriba. Si dos quedan pegados, el desempate "
+            "numérico es «F1 no visto», no F1 macro."
         )
         faltantes = ([] if cfg.ESPECIES_DELATORAS else ["`ESPECIES_DELATORAS`"]) + \
                     ([] if cfg.UMBRAL_SOSPECHA is not None else ["`UMBRAL_SOSPECHA`"])
