@@ -115,7 +115,13 @@ with tab_rank:
     with st.expander("Cómo se calculan las métricas"):
         unidad = ("`(grabación, segmento, especie)`" if cfg.NIVEL == "segmento"
                   else "`(grabación, especie)`")
-        st.markdown(f"""
+        # Cadena **cruda**: el bloque trae LaTeX, y sin la `r` cada `\` hay que
+        # escribirlo doble. Se escapaban `\\mathrm` y `\\frac` pero no `\quad` ni
+        # `\cdot`, que Python dejaba pasar como secuencias inválidas —salían bien
+        # de casualidad, con un SyntaxWarning por cada una y con fecha de
+        # vencimiento: en una versión futura `\q` pasa a ser error. Con `r` se
+        # escribe LaTeX tal cual. Las llaves siguen dobles: eso es del f-string.
+        st.markdown(rf"""
 Tu envío y el ground truth se convierten en dos **conjuntos** de tuplas
 {unidad} y se comparan entre sí. Al ser conjuntos, repetir una fila no suma nada.
 
@@ -125,9 +131,9 @@ Tu envío y el ground truth se convierten en dos **conjuntos** de tuplas
 | **FP** | la predijiste y no está en el ground truth |
 | **FN** | está en el ground truth y no la predijiste |
 
-$\\mathrm{{precisión}} = \\frac{{TP}}{{TP + FP}} \quad \quad$ 
-$\\mathrm{{recall}} = \\frac{{TP}}{{TP + FN}} \quad \quad$ 
-$F_1 = \\frac{{2 \cdot \\mathrm{{precisión}} \cdot \\mathrm{{recall}}}}{{\\mathrm{{precisión}} + \\mathrm{{recall}}}}$
+$\mathrm{{precisión}} = \frac{{TP}}{{TP + FP}} \quad \quad$ 
+$\mathrm{{recall}} = \frac{{TP}}{{TP + FN}} \quad \quad$ 
+$F_1 = \frac{{2 \cdot \mathrm{{precisión}} \cdot \mathrm{{recall}}}}{{\mathrm{{precisión}} + \mathrm{{recall}}}}$
 
 Si un denominador queda en cero, esa métrica vale 0 — no es un error.
 
