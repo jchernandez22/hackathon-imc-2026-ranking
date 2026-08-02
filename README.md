@@ -5,9 +5,19 @@ puntuado al instante, y el ranking se actualiza solo.
 
 ```bash
 pip install -r requirements.txt
-python preparar_datos.py        # copia el ground truth desde ../birdnet_ground_truth
+python ../validar_oido.py --aplicar --umbral 0.16 --destino datos/publico
+python ../preparar_ignoradas.py   # marca lo que no se puntúa
 streamlit run app.py
 ```
+
+⚠️ **No corras `preparar_datos.py` a secas.** El ground truth bueno lo produce
+`validar_oido.py --aplicar`, no el notebook: aplica los veredictos a oído sobre
+las dos corridas de BirdNET (20 grabaciones). `../birdnet_ground_truth/`
+es la corrida vieja a umbral 0.5 sobre 12 archivos y sirve de **entrenamiento**,
+no de referencia. Copiarla encima
+destruye el set puntuado. `--origen` ya es obligatorio y hay un guardia que se
+niega a reemplazar un archivo por otro con menos filas, pero el orden correcto es
+el de arriba.
 
 ## Archivos
 
