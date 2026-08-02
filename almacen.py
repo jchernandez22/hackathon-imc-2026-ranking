@@ -15,8 +15,9 @@ import pandas as pd
 import config as cfg
 import respaldo
 
-COLUMNAS_LOG = ["ts", "equipo", "archivo", "n_filas", "f1_micro", "f1_macro",
-                "precision", "recall", "tp", "fp", "fn", "ic_lo", "ic_hi", "sha8"]
+COLUMNAS_LOG = ["ts", "equipo", "archivo", "n_filas", "f1_micro", "f1_no_visto",
+                "f1_macro", "precision", "recall", "tp", "fp", "fn",
+                "ic_lo", "ic_hi", "sha8"]
 
 
 def ahora() -> dt.datetime:
@@ -68,7 +69,10 @@ def registrar(equipo: str, submission: pd.DataFrame, resultado: dict,
     (cfg.DIR_ARCHIVOS / nombre).write_bytes(crudo)
 
     fila = {"ts": ts, "equipo": equipo, "archivo": nombre, "n_filas": len(submission),
-            "f1_micro": resultado["f1_micro"], "f1_macro": resultado["f1_macro"],
+            "f1_micro": resultado["f1_micro"],
+            # Sin `etiquetas_entrenamiento.csv` el evaluador no la calcula.
+            "f1_no_visto": resultado.get("f1_no_visto"),
+            "f1_macro": resultado["f1_macro"],
             "precision": resultado["precision"], "recall": resultado["recall"],
             "tp": resultado["tp"], "fp": resultado["fp"], "fn": resultado["fn"],
             "ic_lo": ic[0], "ic_hi": ic[1], "sha8": sha8}

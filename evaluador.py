@@ -9,6 +9,19 @@ equipos y cualquier script de organización. No depende de Streamlit.
     ev.validar(df)                      # -> lista de errores (vacía = OK)
     ev.evaluar(df, nivel="segmento")    # -> dict con f1_micro, f1_macro, ...
     ev.intervalo(df, nivel="segmento")  # -> (lo, hi) bootstrap sobre grabaciones
+
+Dos archivos opcionales en el directorio de datos cambian qué se cuenta:
+
+    etiquetas_ignoradas.csv      Etiquetas que no se puntúan ni a favor ni en
+                                 contra: salen del ground truth y de la entrega.
+                                 Son las que no podemos defender — la validación
+                                 a oído contestó "¿hay un ave?", nunca "¿es esta
+                                 especie?". Las genera `preparar_ignoradas.py`.
+
+    etiquetas_entrenamiento.csv  Las que se les entregaron a los equipos.
+                                 Habilitan `f1_no_visto` en el resultado.
+
+Sin ellos el evaluador se comporta igual que antes.
 """
 from __future__ import annotations
 
@@ -64,9 +77,51 @@ class Evaluador:
         self.segmentos_validos = set(zip(self.grilla["id_grabacion"], self.grilla["segmento"]))
         self.especies = sorted(self.gt_segmentos["scientific_name"].unique())
 
+        # Etiquetas que no se puntúan ni a favor ni en contra, y etiquetas que se
+        # entregaron como entrenamiento. Las dos son opcionales: sin ellas el
+        # evaluador se comporta exactamente como antes.
+        self.ignoradas = self._cargar_claves("etiquetas_ignoradas.csv")
+        self.entrenamiento = self._cargar_claves("etiquetas_entrenamiento.csv")
+
         # Mapa archivo -> id_grabacion, para tolerar entregas que solo traigan `archivo`.
         por_archivo = self.grilla.groupby("archivo")["id_grabacion"].agg(set).to_dict()
         self._archivos_unicos = {a: next(iter(v)) for a, v in por_archivo.items() if len(v) == 1}
+
+    # ------------------------------------------------------- claves excluidas
+    def _cargar_claves(self, nombre: str) -> set[tuple]:
+        """Lee un CSV auxiliar de pares (grabación, segmento, especie). Vacío si no está."""
+        f = self.dir / nombre
+        if not f.exists():
+            return set()
+        d = pd.read_csv(f)
+        faltan = {"id_grabacion", "segmento", "scientific_name"} - set(d.columns)
+        if faltan:
+            raise ErrorDeFormato(f"A {f} le faltan columnas: {sorted(faltan)}")
+        return set(zip(d["id_grabacion"].astype(str).str.strip(),
+                       d["segmento"].astype(int),
+                       _capitalizar(d["scientific_name"])))
+
+    def _excluidas(self, nivel: str, extra: set[tuple] = frozenset()) -> set[tuple]:
+        """
+        Las claves a descontar, en la forma que corresponde al `nivel`.
+
+        A nivel de segmento son los pares tal cual. A nivel de presencia una
+        especie solo se excluye de una grabación si **todas** sus etiquetas ahí
+        están excluidas: si queda una defendible, la presencia sigue siendo un
+        hecho puntuable.
+        """
+        claves = self.ignoradas | set(extra)
+        if not claves or nivel == "segmento":
+            return claves
+
+        gt = self.gt_segmentos.assign(
+            _esp=_capitalizar(self.gt_segmentos["scientific_name"]))
+        total = gt.groupby(["id_grabacion", "_esp"]).size()
+        marcadas = pd.Series(
+            [(g, s, e) in claves for g, s, e in
+             zip(gt["id_grabacion"], gt["segmento"], gt["_esp"])], index=gt.index)
+        excl = gt[marcadas].groupby(["id_grabacion", "_esp"]).size()
+        return {k for k, n in excl.items() if n == total[k]}
 
     # ----------------------------------------------------------------- lectura
     def _leer(self, submission) -> pd.DataFrame:
@@ -193,6 +248,12 @@ class Evaluador:
         verdad = self._claves(ref, nivel)
         pred = self._claves(submission, nivel)
 
+        # Las ignoradas salen del ground truth **y** de la entrega. Si solo
+        # salieran del ground truth, el equipo que encuentre ese canto se comería
+        # un falso positivo por haber acertado.
+        excl = self._excluidas(nivel)
+        verdad, pred = verdad - excl, pred - excl
+
         tp, fp, fn = len(pred & verdad), len(pred - verdad), len(verdad - pred)
         p, r, f1 = _prf(tp, fp, fn)
 
@@ -213,7 +274,20 @@ class Evaluador:
             "f1_macro": round(float(detalle["f1"].mean()) if len(detalle) else 0.0, 4),
             "jaccard": round(tp / max(tp + fp + fn, 1), 4),
             "especies_pred": len({k[-1] for k in pred}),
+            "n_ignoradas": len(excl),
         }
+
+        # F1 sobre lo que el equipo **no** tenía: se descuentan también las
+        # etiquetas de entrenamiento, de la entrega y del ground truth. Quien
+        # copia el entrenamiento tal cual queda en 0.00 acá y a la vista.
+        if self.entrenamiento:
+            excl_nv = self._excluidas(nivel, self.entrenamiento)
+            v_nv = verdad - excl_nv
+            p_nv = pred - excl_nv
+            _, _, f_nv = _prf(len(p_nv & v_nv), len(p_nv - v_nv), len(v_nv - p_nv))
+            res["f1_no_visto"] = round(f_nv, 4)
+            res["n_no_visto"] = len(v_nv)
+
         return (res, detalle.sort_values("f1", ascending=False).reset_index(drop=True)) \
             if por_especie else res
 
@@ -229,6 +303,8 @@ class Evaluador:
         """
         ref = self.gt_presencia if nivel == "presencia" else self.gt_segmentos
         verdad, pred = self._claves(ref, nivel), self._claves(submission, nivel)
+        excl = self._excluidas(nivel)
+        verdad, pred = verdad - excl, pred - excl
 
         cuentas: dict[str, list[int]] = defaultdict(lambda: [0, 0, 0])
         for k in pred & verdad:

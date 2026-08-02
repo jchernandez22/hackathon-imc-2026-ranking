@@ -87,8 +87,13 @@ with tab_rank:
         st.altair_chart(graficos.grafico_ranking(mejores),
                         width="stretch", theme=None)
 
-        tabla = mejores[["equipo", "f1_micro", "ic_lo", "ic_hi", "f1_macro",
-                         "precision", "recall", "n_envios", "ultimo"]].copy()
+        cols = ["equipo", "f1_micro", "ic_lo", "ic_hi", "f1_macro",
+                "precision", "recall", "n_envios", "ultimo"]
+        # La columna «no visto» solo existe si el evaluador tiene las etiquetas
+        # de entrenamiento; sin ellas no se muestra en vez de salir vacía.
+        if "f1_no_visto" in mejores and mejores["f1_no_visto"].notna().any():
+            cols.insert(2, "f1_no_visto")
+        tabla = mejores[cols].copy()
         tabla.insert(0, "#", range(1, len(tabla) + 1))
         tabla["intervalo"] = tabla.apply(
             lambda r: f"[{r.ic_lo:.2f} – {r.ic_hi:.2f}]", axis=1)
@@ -101,6 +106,11 @@ with tab_rank:
                 hide_index=True, width="stretch",
                 column_config={
                     "f1_micro": st.column_config.NumberColumn("F1 micro", format="%.2f"),
+                    "f1_no_visto": st.column_config.NumberColumn(
+                        "F1 no visto", format="%.2f",
+                        help="F1 sobre las etiquetas que NO venían en el paquete "
+                             "de entrenamiento. Entregar el entrenamiento tal cual "
+                             "da 0.00 acá."),
                     "f1_macro": st.column_config.NumberColumn("F1 macro", format="%.2f"),
                     "precision": st.column_config.NumberColumn("Prec.", format="%.2f"),
                     "recall": st.column_config.NumberColumn("Rec.", format="%.2f"),
@@ -266,12 +276,21 @@ with tab_enviar:
                 "respaldar**. Avísale a la organización. "
                 f"({fila.get('error_respaldo', 'sin detalle')})")
 
-        m = st.columns(5)
-        m[0].metric("F1 micro", f"{res['f1_micro']:.3f}")
-        m[1].metric("F1 macro", f"{res['f1_macro']:.3f}")
-        m[2].metric("Precisión", f"{res['precision']:.3f}")
-        m[3].metric("Recall", f"{res['recall']:.3f}")
-        m[4].metric("TP / FP / FN", f"{res['tp']} / {res['fp']} / {res['fn']}")
+        if "f1_no_visto" in res:
+            m = st.columns(6)
+            m[0].metric("F1 micro", f"{res['f1_micro']:.3f}")
+            m[1].metric("F1 no visto", f"{res['f1_no_visto']:.3f}",
+                        help=f"Solo las {res['n_no_visto']} etiquetas que no "
+                             "venían en tu paquete de entrenamiento.")
+            resto = m[2:]
+        else:
+            m = st.columns(5)
+            m[0].metric("F1 micro", f"{res['f1_micro']:.3f}")
+            resto = m[1:]
+        resto[0].metric("F1 macro", f"{res['f1_macro']:.3f}")
+        resto[1].metric("Precisión", f"{res['precision']:.3f}")
+        resto[2].metric("Recall", f"{res['recall']:.3f}")
+        resto[3].metric("TP / FP / FN", f"{res['tp']} / {res['fp']} / {res['fn']}")
 
         st.dataframe(detalle, hide_index=True, width="stretch")
         if res["precision"] < res["recall"] / 2:
