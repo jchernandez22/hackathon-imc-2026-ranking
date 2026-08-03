@@ -48,8 +48,9 @@ def _tema() -> dict:
 def grafico_ranking(mejores: pd.DataFrame, metrica: str = cfg.METRICA):
     """
     Ranking horizontal: una barra por equipo, con su puesto, su nombre y su
-    valor. El intervalo de confianza no se dibuja —queda en el tooltip y en la
-    tabla— para que la barra sea solo la barra.
+    valor. El intervalo de confianza no aparece —ni dibujado ni en el tooltip—:
+    es una vista para los equipos y ahí el IC confunde más de lo que informa.
+    Sigue en el log y en el panel de admin.
     """
     d = (mejores.sort_values(metrica, ascending=False)
          .reset_index(drop=True).copy())
@@ -57,10 +58,6 @@ def grafico_ranking(mejores: pd.DataFrame, metrica: str = cfg.METRICA):
     d["valor"] = d[metrica]
     d["etiqueta"] = d.puesto.astype(str) + " " + d.equipo   # clave del eje Y
     d["nombre"] = d.equipo.str.slice(0, 26)
-    # El intervalo se recorta al eje: un IC que se sale de [0, 1] es ruido del
-    # bootstrap, no información.
-    d["lo"] = d[["ic_lo", "valor"]].min(axis=1).clip(0, 1)
-    d["hi"] = d[["ic_hi", "valor"]].max(axis=1).clip(0, 1)
     d["texto"] = d.valor.map("{:.2f}".format)
     if "n_envios" not in d:
         d["n_envios"] = pd.NA
@@ -86,8 +83,6 @@ def grafico_ranking(mejores: pd.DataFrame, metrica: str = cfg.METRICA):
         alt.Tooltip("equipo:N", title="Equipo"),
         alt.Tooltip("puesto:Q", title="Puesto"),
         alt.Tooltip("valor:Q", title=metrica.replace("_", " "), format=".3f"),
-        alt.Tooltip("lo:Q", title="IC 95 % desde", format=".3f"),
-        alt.Tooltip("hi:Q", title="IC 95 % hasta", format=".3f"),
         alt.Tooltip("n_envios:Q", title="Envíos"),
     ]
 

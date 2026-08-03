@@ -106,7 +106,12 @@ with tab_rank:
         st.altair_chart(graficos.grafico_ranking(mejores),
                         width="stretch", theme=None)
 
-        cols = ["equipo", "f1_micro", "ic_lo", "ic_hi", "f1_macro",
+        # El intervalo de confianza no se le muestra a los equipos: sin la
+        # explicación al lado, un `[0.40 – 0.67]` se lee como el margen de error
+        # del modelo y no como lo que es —lo angosta que es la muestra, 20
+        # grabaciones—. Se sigue calculando y guardando: está en el log y en el
+        # panel de admin, que es donde sirve para decidir el podio.
+        cols = ["equipo", "f1_micro", "f1_macro",
                 "precision", "recall", "n_envios", "ultimo"]
         # La columna «no visto» solo existe si el evaluador tiene las etiquetas
         # de entrenamiento; sin ellas no se muestra en vez de salir vacía.
@@ -114,14 +119,12 @@ with tab_rank:
             cols.insert(2, "f1_no_visto")
         tabla = mejores[cols].copy()
         tabla.insert(0, "#", range(1, len(tabla) + 1))
-        tabla["intervalo"] = tabla.apply(
-            lambda r: f"[{r.ic_lo:.2f} – {r.ic_hi:.2f}]", axis=1)
 
         # La tabla es la vista accesible del gráfico: mismos datos, sin depender
         # del color ni del largo de las barras.
         with st.expander("Ver la tabla completa"):
             st.dataframe(
-                tabla.drop(columns=["ic_lo", "ic_hi"]),
+                tabla,
                 hide_index=True, width="stretch",
                 column_config={
                     "f1_micro": st.column_config.NumberColumn("F1 micro", format="%.2f"),
@@ -275,8 +278,7 @@ with tab_enviar:
             st.stop()
 
         fila = almacen.registrar(equipo, sub, res, ic)
-        st.success(f"Envío registrado · **F1 micro = {res['f1_micro']:.3f}**  "
-                   f"[{ic[0]:.2f} – {ic[1]:.2f}]")
+        st.success(f"Envío registrado · **F1 micro = {res['f1_micro']:.3f}**")
         if respaldo.activo() and not fila.get("respaldado"):
             # El envío quedó guardado igual; lo que falló es la copia durable.
             # Se avisa porque un reinicio del contenedor sí lo perdería.
@@ -407,6 +409,31 @@ with tab_admin:
             st.caption(f"⚠️ Sin configurar en *Secrets*: {', '.join(faltantes)} — "
                        "esas señales están apagadas. Los valores recomendados "
                        "están en las notas privadas de organización.")
+
+    st.markdown("#### Quiénes están realmente separados")
+    st.caption(
+        "El intervalo es un IC al 95 % por bootstrap sobre **grabaciones** "
+        f"({cfg.BOOTSTRAP_N:,} remuestreos): con otras 20 grabaciones del mismo "
+        "sitio, el F1 de ese equipo caería casi siempre dentro de ese rango. "
+        "Sale ancho porque las unidades independientes son pocas. **Si dos "
+        "intervalos se pisan, la tabla los ordena pero no los separa.** Esta "
+        "vista es solo del panel: a los equipos no se les muestra.")
+    if not log.empty:
+        sep = almacen.mejores_por_equipo(log).sort_values(
+            cfg.METRICA, ascending=False)
+        st.dataframe(
+            pd.DataFrame({
+                "equipo": sep.equipo,
+                cfg.METRICA: sep[cfg.METRICA].map("{:.3f}".format),
+                "IC 95 %": [f"[{lo:.3f} – {hi:.3f}]"
+                            for lo, hi in zip(sep.ic_lo, sep.ic_hi)],
+                "ancho": (sep.ic_hi - sep.ic_lo).map("{:.3f}".format),
+                # Se pisa con el de arriba: el desempate no puede ser el puntaje.
+                "empatado con el anterior": [False] + [
+                    lo <= hi_prev for lo, hi_prev
+                    in zip(sep.ic_lo[1:], sep.ic_hi[:-1])],
+            }),
+            hide_index=True, width="stretch")
 
     st.markdown("#### Segmentos disputados")
     st.caption("Segmentos donde los equipos se dividen: son los mejores candidatos "
