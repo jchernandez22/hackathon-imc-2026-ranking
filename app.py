@@ -152,11 +152,11 @@ with tab_rank:
         # escribe LaTeX tal cual. Las llaves siguen dobles: eso es del f-string.
         st.markdown(rf"""
 Tu envío y el ground truth se convierten en dos **conjuntos** de tuplas
-{unidad} y se comparan entre sí. Al ser conjuntos, repetir una fila no suma nada.
+{unidad} y se comparan entre sí. Repetir una fila no suma nada.
 
 | | qué es |
 | --- | --- |
-| **TP** | la tupla está en los dos |
+| **TP** | la tupla está en ambos |
 | **FP** | la predijiste y no está en el ground truth |
 | **FN** | está en el ground truth y no la predijiste |
 
@@ -164,32 +164,20 @@ $\mathrm{{precisión}} = \frac{{TP}}{{TP + FP}} \quad \quad$
 $\mathrm{{recall}} = \frac{{TP}}{{TP + FN}} \quad \quad$ 
 $F_1 = \frac{{2 \cdot \mathrm{{precisión}} \cdot \mathrm{{recall}}}}{{\mathrm{{precisión}} + \mathrm{{recall}}}}$
 
-Si un denominador queda en cero, esa métrica vale 0 — no es un error.
+Si un denominador queda en cero, la métrica vale 0.
 
 **F1 micro**, el del ranking, sale de los TP, FP y FN **globales**: cada
-detección pesa lo mismo, así que las especies con más segmentos mandan.
-**F1 macro** es el promedio simple del F1 de cada especie, y promedia sobre las
-que aparecen en el ground truth **o** en tu envío: predecir una especie que no
-existe en estas grabaciones te mete un 0 en ese promedio, además del FP.
+detección pesa lo mismo.
+**F1 macro** es el promedio simple del F1 de cada especie.
 
-Tres cosas que sorprenden a todo el mundo la primera vez:
+A tener en cuenta:
 
-- **La columna `confidence` no se usa.** El evaluador no aplica ningún umbral:
-  cada fila que entregas es una predicción positiva. Elegir el umbral es parte
-  del problema y va antes de enviar.
-- **Un segmento sin filas es una predicción**, la de «aquí no hay ave», y suele
-  ser correcta. Rellenar por si acaso solo genera FP.
-- **El nombre se normaliza** —espacios de sobra y mayúsculas dan lo mismo,
-  `TURDUS  falcklandii ` cuenta como `Turdus falcklandii`—, pero la especie
-  tiene que ser la correcta: no hay crédito parcial por acertar el género.
+- **Un segmento sin filas es una predicción**, significa que no hay ave en aquel segmento. 
+- **El nombre se normaliza** —espacios de sobra y mayúsculas se ignoran—, así que
+  `TURDUS  falcklandii ` cuenta como `Turdus falcklandii`, pero la especie
+  tiene que ser la correcta.
 
-El **intervalo** de la tabla es un IC al 95 % por bootstrap: {cfg.BOOTSTRAP_N:,}
-remuestreos **de grabaciones**, no de segmentos (los segmentos de una misma
-grabación están correlacionados y remuestrearlos daría un intervalo falsamente
-angosto), y se toman los percentiles 2.5 y 97.5. Sale ancho porque las unidades
-independientes son pocas: **dos equipos separados por 0.02 no están separados.**
-
-El ranking muestra el **mejor** envío de cada equipo, no el último.
+En la pestaña **Ranking** se muestra el **mejor** envío de cada equipo, no el último.
 """)
 
 
