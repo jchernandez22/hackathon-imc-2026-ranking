@@ -29,7 +29,15 @@ ARCHIVO_EQUIPOS = RAIZ / "equipos.json"
 
 # --- Reglas del ranking ------------------------------------------------------
 NIVEL = "segmento"          # "segmento" (exigente) o "presencia"
-METRICA = "f1_micro"        # ver README § "Por qué micro y no macro"
+# F1 micro, pero solo sobre las etiquetas que **no** venían en el paquete de
+# entrenamiento. Con `f1_micro` a secas, más de la mitad del ground truth
+# puntuado ya está en manos de los equipos: pegar `etiquetas_entrenamiento.csv`
+# en la entrega regalaba medio puntaje sin modelar nada, y eso premiaba leer la
+# letra chica antes que clasificar. Descontarlas deja 0.00 a quien copie y no
+# le quita poder de discriminación al ranking: son las mismas etiquetas las que
+# deciden el orden en cualquiera de las dos versiones.
+METRICA = "f1_no_visto"
+ETIQUETA_METRICA = "F1 no visto"   # como se nombra en pantalla
 ENVIOS_POR_DIA = 5          # cuota por equipo; frena el sondeo del leaderboard
 BOOTSTRAP_N = 2000          # remuestreos para el intervalo de confianza
 

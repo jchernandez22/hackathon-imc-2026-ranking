@@ -83,7 +83,7 @@ st.title("🐦 " + cfg.NOMBRE_EVENTO)
 st.caption(
     # Sin conteo de especies: cualquier número acá dice algo del set puntuado
     # que los equipos no pueden deducir de su propio paquete.
-    f"Ranking por **{cfg.METRICA}** a nivel de **{cfg.NIVEL}** · "
+    f"Ranking por **{cfg.ETIQUETA_METRICA}** a nivel de **{cfg.NIVEL}** · "
     f"{len(ev.grilla):,} segmentos · "
     f"cuota de {cfg.ENVIOS_POR_DIA} envíos por equipo al día"
 )
@@ -111,12 +111,12 @@ with tab_rank:
         # del modelo y no como lo que es —lo angosta que es la muestra, 20
         # grabaciones—. Se sigue calculando y guardando: está en el log y en el
         # panel de admin, que es donde sirve para decidir el podio.
-        cols = ["equipo", "f1_micro", "f1_macro",
+        cols = ["equipo", "f1_no_visto", "f1_micro", "f1_macro",
                 "precision", "recall", "n_envios", "ultimo"]
-        # La columna «no visto» solo existe si el evaluador tiene las etiquetas
-        # de entrenamiento; sin ellas no se muestra en vez de salir vacía.
-        if "f1_no_visto" in mejores and mejores["f1_no_visto"].notna().any():
-            cols.insert(2, "f1_no_visto")
+        # La columna del ranking solo existe si el evaluador tiene las etiquetas
+        # de entrenamiento; sin ellas se cae de la tabla en vez de salir vacía.
+        if not ("f1_no_visto" in mejores and mejores["f1_no_visto"].notna().any()):
+            cols.remove("f1_no_visto")
         tabla = mejores[cols].copy()
         tabla.insert(0, "#", range(1, len(tabla) + 1))
 
@@ -169,9 +169,14 @@ $F_1 = \frac{{2 \cdot \mathrm{{precisión}} \cdot \mathrm{{recall}}}}{{\mathrm{{
 
 Si un denominador queda en cero, la métrica vale 0.
 
-**F1 micro**, el del ranking, sale de los TP, FP y FN **globales**: cada
-detección pesa lo mismo.
+**F1 micro** sale de los TP, FP y FN **globales**: cada detección pesa lo mismo.
 **F1 macro** es el promedio simple del F1 de cada especie.
+
+**F1 no visto**, el del ranking, es ese mismo F1 micro calculado **sin las
+etiquetas que venían en `etiquetas_entrenamiento.csv`**: se descuentan tanto del
+ground truth como de tu envío. Copiar el archivo de entrenamiento dentro de la
+entrega no suma nada, ni resta; lo que se mide es lo que tu modelo encuentra por
+su cuenta.
 
 A tener en cuenta:
 
@@ -272,13 +277,15 @@ with tab_enviar:
 
         try:
             res, detalle = ev.evaluar(sub, cfg.NIVEL, por_especie=True)
-            ic = ev.intervalo(sub, cfg.NIVEL, n=cfg.BOOTSTRAP_N)
+            ic = ev.intervalo(sub, cfg.NIVEL, n=cfg.BOOTSTRAP_N,
+                              metrica=cfg.METRICA)
         except ErrorDeFormato as e:
             st.error(str(e))
             st.stop()
 
         fila = almacen.registrar(equipo, sub, res, ic)
-        st.success(f"Envío registrado · **F1 micro = {res['f1_micro']:.3f}**")
+        st.success(f"Envío registrado · **{cfg.ETIQUETA_METRICA} = "
+                   f"{res.get(cfg.METRICA, res['f1_micro']):.3f}**")
         if respaldo.activo() and not fila.get("respaldado"):
             # El envío quedó guardado igual; lo que falló es la copia durable.
             # Se avisa porque un reinicio del contenedor sí lo perdería.
@@ -289,11 +296,12 @@ with tab_enviar:
 
         if "f1_no_visto" in res:
             m = st.columns(6)
-            m[0].metric("F1 micro", f"{res['f1_micro']:.3f}")
-            m[1].metric("F1 no visto", f"{res['f1_no_visto']:.3f}",
-                        help="Solo las etiquetas que no venían en tu paquete de "
-                             "entrenamiento. Entregar el paquete tal cual da 0.00 "
-                             "acá. (No decimos cuántas son.)")
+            m[0].metric("F1 no visto", f"{res['f1_no_visto']:.3f}",
+                        help="La métrica del ranking: solo las etiquetas que no "
+                             "venían en tu paquete de entrenamiento. Entregar el "
+                             "paquete tal cual da 0.00 acá. (No decimos cuántas "
+                             "son.)")
+            m[1].metric("F1 micro", f"{res['f1_micro']:.3f}")
             resto = m[2:]
         else:
             m = st.columns(5)

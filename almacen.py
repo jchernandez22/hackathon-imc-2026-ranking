@@ -136,6 +136,11 @@ def mejores_por_equipo(log: pd.DataFrame | None = None,
     log = leer_log() if log is None else log
     if log.empty:
         return log
+    # `f1_no_visto` queda vacío si el evaluador arrancó sin las etiquetas de
+    # entrenamiento, y ahí `idxmax` sobre una columna toda NaN revienta. Antes de
+    # dejar el ranking caído, se ordena por F1 micro.
+    if log[metrica].isna().all():
+        metrica = "f1_micro"
     idx = log.groupby("equipo")[metrica].idxmax()
     mejor = log.loc[idx].copy()
     conteo = log.groupby("equipo").agg(n_envios=("ts", "size"), ultimo=("ts", "max"))

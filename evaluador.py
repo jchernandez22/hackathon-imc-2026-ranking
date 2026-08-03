@@ -35,7 +35,7 @@ import numpy as np
 import pandas as pd
 
 # La métrica del ranking. Ver README.md § "Por qué micro y no macro".
-METRICA = "f1_micro"
+METRICA = "f1_no_visto"
 NIVEL_RANKING = "segmento"
 
 COLS_ESPECIE = ("scientific_name", "especie", "species")
@@ -322,17 +322,25 @@ class Evaluador:
 
     # ------------------------------------------------------- intervalo (bootstrap)
     def intervalo(self, submission, nivel: str = NIVEL_RANKING,
-                  n: int = 2000, semilla: int = 0) -> tuple[float, float]:
+                  n: int = 2000, semilla: int = 0,
+                  metrica: str = METRICA) -> tuple[float, float]:
         """
-        IC 95 % del F1 micro, remuestreando **grabaciones** (no segmentos).
+        IC 95 % de la métrica del ranking, remuestreando **grabaciones** (no
+        segmentos).
 
         Los segmentos dentro de una grabación están correlacionados — un canto
         ocupa varios seguidos —, así que remuestrearlos daría un intervalo
         falsamente angosto. La unidad independiente es la grabación.
+
+        El intervalo tiene que ser el de la métrica que ordena la tabla, no otro:
+        con `metrica="f1_no_visto"` se descuentan también las etiquetas de
+        entrenamiento, exactamente como en `evaluar`.
         """
         ref = self.gt_presencia if nivel == "presencia" else self.gt_segmentos
         verdad, pred = self._claves(ref, nivel), self._claves(submission, nivel)
-        excl = self._excluidas(nivel)
+        excl = self._excluidas(
+            nivel, (self.entrenamiento or frozenset())
+            if metrica == "f1_no_visto" else frozenset())
         verdad, pred = verdad - excl, pred - excl
 
         cuentas: dict[str, list[int]] = defaultdict(lambda: [0, 0, 0])
