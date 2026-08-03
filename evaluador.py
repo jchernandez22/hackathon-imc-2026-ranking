@@ -61,7 +61,7 @@ class ErrorDeFormato(ValueError):
 
 # --------------------------------------------------------------------------- #
 class Evaluador:
-    """Evalúa entregas contra un ground truth. Una instancia por set (público/privado)."""
+    """Evalúa entregas contra el ground truth."""
 
     def __init__(self, dir_datos: str | pathlib.Path):
         d = pathlib.Path(dir_datos)

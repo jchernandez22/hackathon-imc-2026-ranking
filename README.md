@@ -62,17 +62,6 @@ el ranking. El botón lo cambia en los dos lados y conserva el token.
 
 Antes de que el equipo haya enviado nada da lo mismo — el log está vacío.
 
-## El set privado
-
-`datos/privado/` está soportado por el panel de admin: si hay un ground truth
-ahí, aparece el botón para puntuar todos los envíos contra él y comparar la caída
-público→privado. Si no lo hay, el botón no aparece.
-
-Para poblarlo se corre el notebook de BirdNET sobre las grabaciones nuevas y
-después `preparar_datos.py --destino privado`. **Si el audio nuevo va en la misma
-carpeta que el público, el notebook lo barre con `rglob` y se mezclan**: tiene que
-ir en un directorio hermano.
-
 ## Por qué micro y no macro
 
 La distribución de especies del ground truth es muy desbalanceada: unas pocas
@@ -124,8 +113,8 @@ no el descuido.
 El disco del contenedor es efímero: se reconstruye desde el repo en cada reinicio
 —push, reboot manual, inactividad, límite de memoria— y todo lo que la app
 escribió se pierde. `envios/log.csv` y las submissions son justamente eso, y
-`app.py` vuelve a leer los CSV crudos en cuatro lugares (por especie, set
-privado, señales, disputados), así que perderlos rompe más que el ranking.
+`app.py` vuelve a leer los CSV crudos en tres lugares (por especie, señales,
+disputados), así que perderlos rompe más que el ranking.
 
 `respaldo.py` cierra ese agujero: espeja el estado en un **repositorio privado
 aparte** y lo repone al arrancar. Aparte por dos razones —un gist «secreto» lo

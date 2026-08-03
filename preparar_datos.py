@@ -1,8 +1,6 @@
 """
 Copia el ground truth a `datos/publico/`.
 
-    python preparar_datos.py                     # set público (por defecto)
-    python preparar_datos.py --destino privado   # cuando lleguen las nuevas grabaciones
 
 ⚠️  **El ground truth bueno ya no lo produce el notebook.** Lo produce
 `validar_oido.py --aplicar --umbral 0.16`, que aplica los veredictos a oído sobre
@@ -64,7 +62,6 @@ def main() -> None:
                    help="carpeta con el ground truth a copiar. NO uses "
                         "../birdnet_ground_truth: esa es la corrida vieja de 117 "
                         "etiquetas y te sobrescribe el set puntuado.")
-    p.add_argument("--destino", choices=["publico", "privado"], default="publico")
     p.add_argument("--entrenamiento", default="../birdnet_ground_truth/ground_truth_segmentos.csv",
                    help="etiquetas que se les entregan a los equipos; habilitan "
                         "la columna «no visto». Vacío para omitirlas.")
@@ -73,7 +70,7 @@ def main() -> None:
     args = p.parse_args()
 
     origen = pathlib.Path(args.origen)
-    destino = cfg.DIR_PUBLICO if args.destino == "publico" else cfg.DIR_PRIVADO
+    destino = cfg.DIR_PUBLICO
     destino.mkdir(parents=True, exist_ok=True)
 
     for nombre in NECESARIOS:

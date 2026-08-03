@@ -376,32 +376,6 @@ with tab_admin:
             st.success(f"«{viejo}» → «{nuevo}» · {n} envío(s) reasignado(s). "
                        "Recarga la página.")
 
-    st.markdown("#### Set privado")
-    if not (cfg.DIR_PRIVADO / "ground_truth_segmentos.csv").exists():
-        # El texto describe el estado del disco y nada más. Cualquier afirmación
-        # sobre cómo se puntúa *esta* edición iría en las notas privadas, no acá:
-        # el repo es público y saber si hay o no set ciego le cambia la
-        # estrategia a un equipo.
-        st.info(
-            f"No hay set privado cargado en `{cfg.DIR_PRIVADO}`. Para activar "
-            "este botón, pon ahí un ground truth con "
-            "`preparar_datos.py --destino privado`."
-        )
-    elif st.button("Puntuar todos los envíos contra el set privado"):
-        ev_priv = Evaluador(str(cfg.DIR_PRIVADO))
-        filas = []
-        for _, r in almacen.mejores_por_equipo(log).iterrows():
-            sub = pd.read_csv(cfg.DIR_ARCHIVOS / r.archivo)
-            res = ev_priv.evaluar(sub, cfg.NIVEL)
-            lo, hi = ev_priv.intervalo(sub, cfg.NIVEL, n=cfg.BOOTSTRAP_N)
-            filas.append({"equipo": r.equipo, "publico": r[cfg.METRICA],
-                          "privado": res[cfg.METRICA], "ic_lo": lo, "ic_hi": hi})
-        final = pd.DataFrame(filas).sort_values("privado", ascending=False)
-        final["caída"] = (final.privado - final.publico).round(3)
-        st.dataframe(final, hide_index=True, width="stretch")
-        st.caption("Una caída grande público→privado es sobreajuste al set de "
-                   "desarrollo. Vale la pena comentarlo en el cierre.")
-
     st.markdown("#### Señales de revisión")
     if not log.empty:
         alertas = []

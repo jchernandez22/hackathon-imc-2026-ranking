@@ -19,11 +19,8 @@ def st_secret(nombre: str) -> str | None:
         return None
 
 # --- Datos -------------------------------------------------------------------
-# El set PÚBLICO se entrega a los equipos con su ground truth: es su set de
-# desarrollo. El PRIVADO son las grabaciones diurnas nuevas, que nunca se
-# publican y se corren una sola vez al cierre.
+# Las grabaciones sobre las que se puntúa, con su ground truth.
 DIR_PUBLICO = RAIZ / "datos" / "publico"
-DIR_PRIVADO = RAIZ / "datos" / "privado"
 
 DIR_ENVIOS = RAIZ / "envios"
 ARCHIVO_LOG = DIR_ENVIOS / "log.csv"
@@ -85,5 +82,5 @@ GRID, SUPERFICIE = "#e1e0d9", "#fcfcfb"
 SERIES = (AZUL, NARANJA, AQUA, "#eda100", "#e87ba4",
           "#008300", "#4a3aa7", "#e34948")
 
-for _d in (DIR_ENVIOS, DIR_ARCHIVOS, DIR_PUBLICO, DIR_PRIVADO):
+for _d in (DIR_ENVIOS, DIR_ARCHIVOS, DIR_PUBLICO):
     _d.mkdir(parents=True, exist_ok=True)
