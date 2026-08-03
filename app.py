@@ -62,10 +62,22 @@ except FileNotFoundError:
 
 EQUIPOS = almacen.cargar_equipos()
 
+# Las especies que los equipos ya conocen: las de su paquete de entrenamiento.
+# Todo desglose por especie que se muestre en público se limita a estas.
+#
+# Publicar las del ground truth —y sobre todo sus conteos— les permitiría
+# calibrar cuántas predicciones emitir de cada una sin modelar nada, que es
+# exactamente lo que se sacó del README cuando este repo pasó a ser público.
+# Falla cerrada a propósito: si no está `etiquetas_entrenamiento.csv`, el
+# desglose se apaga en vez de caer de vuelta al ground truth completo.
+ESPECIES_VISIBLES = ev.especies_entregadas
+
 st.title("🐦 " + cfg.NOMBRE_EVENTO)
 st.caption(
+    # Sin conteo de especies: cualquier número acá dice algo del set puntuado
+    # que los equipos no pueden deducir de su propio paquete.
     f"Ranking por **{cfg.METRICA}** a nivel de **{cfg.NIVEL}** · "
-    f"{len(ev.grilla):,} segmentos · {len(ev.especies)} especies · "
+    f"{len(ev.grilla):,} segmentos · "
     f"cuota de {cfg.ENVIOS_POR_DIA} envíos por equipo al día"
 )
 
@@ -180,22 +192,24 @@ with tab_especies:
     mejores = almacen.mejores_por_equipo()
     if mejores.empty:
         st.info("Sin envíos todavía.")
+    elif not ESPECIES_VISIBLES:
+        st.info("Falta `etiquetas_entrenamiento.csv`: el desglose por especie "
+                "queda desactivado.")
     else:
         filas = []
         for _, r in mejores.iterrows():
             sub = pd.read_csv(cfg.DIR_ARCHIVOS / r.archivo)
             _, det = ev.evaluar(sub, cfg.NIVEL, por_especie=True)
             filas.append(det.set_index("scientific_name")["f1"].rename(r.equipo))
-        matriz = pd.concat(filas, axis=1).reindex(ev.especies).fillna(0)
-
-        soporte = (ev.gt_segmentos.groupby("scientific_name").size()
-                   .reindex(ev.especies).fillna(0).astype(int))
-        matriz.index = [f"{sp}  (n={soporte[sp]})" for sp in matriz.index]
+        # Solo las especies del paquete de entrenamiento, y sin el soporte del
+        # ground truth: el `n` de cada especie es justamente lo que no se publica.
+        matriz = pd.concat(filas, axis=1).reindex(ESPECIES_VISIBLES).fillna(0)
 
         st.dataframe(graficos.estilo_matriz(matriz), width="stretch")
         st.caption(
-            "Las especies con n = 1, 2 y 3 son prácticamente inaprendibles en 24 h. "
-            "Por eso el ranking usa F1 **micro**: con macro, esas tres decidirían el "
+            "Se listan las especies del paquete de entrenamiento. Las tres que ahí "
+            "traen 3, 2 y 1 ejemplo son prácticamente inaprendibles en 24 h: por eso "
+            "el ranking usa F1 **micro** y no macro, donde esas tres decidirían el "
             "podio por azar."
         )
 
@@ -280,8 +294,9 @@ with tab_enviar:
             m = st.columns(6)
             m[0].metric("F1 micro", f"{res['f1_micro']:.3f}")
             m[1].metric("F1 no visto", f"{res['f1_no_visto']:.3f}",
-                        help=f"Solo las {res['n_no_visto']} etiquetas que no "
-                             "venían en tu paquete de entrenamiento.")
+                        help="Solo las etiquetas que no venían en tu paquete de "
+                             "entrenamiento. Entregar el paquete tal cual da 0.00 "
+                             "acá. (No decimos cuántas son.)")
             resto = m[2:]
         else:
             m = st.columns(5)
@@ -292,7 +307,13 @@ with tab_enviar:
         resto[2].metric("Recall", f"{res['recall']:.3f}")
         resto[3].metric("TP / FP / FN", f"{res['tp']} / {res['fp']} / {res['fn']}")
 
-        st.dataframe(detalle, hide_index=True, width="stretch")
+        # `n_verdad` es el conteo del ground truth por especie: no se muestra.
+        # Y solo se listan las especies que el equipo ya conoce o que predijo:
+        # una fila para una especie que nunca vio le revelaría que existe.
+        visible = detalle[detalle.scientific_name.isin(ESPECIES_VISIBLES)
+                          | detalle.n_pred.gt(0)]
+        st.dataframe(visible.drop(columns=["n_verdad"]),
+                     hide_index=True, width="stretch")
         if res["precision"] < res["recall"] / 2:
             st.info("Tu precisión es mucho más baja que tu recall: estás prediciendo "
                     "de más. Prueba subiendo el umbral de decisión.")

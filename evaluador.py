@@ -83,6 +83,12 @@ class Evaluador:
         self.ignoradas = self._cargar_claves("etiquetas_ignoradas.csv")
         self.entrenamiento = self._cargar_claves("etiquetas_entrenamiento.csv")
 
+        # Las especies que los equipos tienen en la mano. Es la referencia de todo
+        # lo que se les muestra: `self.especies` (las del ground truth) no puede
+        # salir a pantalla ni en un conteo. Vacía si no está el CSV, y entonces
+        # las vistas que dependen de ella se apagan en vez de caer al GT.
+        self.especies_entregadas = sorted({k[-1] for k in self.entrenamiento})
+
         # Mapa archivo -> id_grabacion, para tolerar entregas que solo traigan `archivo`.
         por_archivo = self.grilla.groupby("archivo")["id_grabacion"].agg(set).to_dict()
         self._archivos_unicos = {a: next(iter(v)) for a, v in por_archivo.items() if len(v) == 1}
@@ -231,13 +237,22 @@ class Evaluador:
             problemas.append(f"{int(dup.sum())} filas duplicadas (misma grabación, "
                              "segmento y especie).")
 
+        # Se compara contra las especies del **paquete de entrenamiento**, nunca
+        # contra las del ground truth. Comparar contra el GT convertía este aviso
+        # en un oráculo gratis: un CSV con un error bloqueante no consume cuota,
+        # así que se podía sondear sin límite —listas de especies partidas a la
+        # mitad, mirando cuántas quedan «fuera»— hasta enumerar el ground truth
+        # sin modelar nada. Contra el paquete de entrenamiento el aviso solo
+        # devuelve información que el equipo ya tiene, y sigue pillando el typo.
         esp = _capitalizar(d[col])
-        raras = sorted(set(esp) - set(self.especies))
-        if raras:
-            problemas.append(
-                f"Aviso: {len(raras)} especie(s) fuera del ground truth, p. ej. {raras[:3]}. "
-                "No es un error — cuentan como falsos positivos."
-            )
+        if self.especies_entregadas:
+            fuera = sorted(set(esp) - set(self.especies_entregadas))
+            if fuera:
+                problemas.append(
+                    f"Aviso: {len(fuera)} especie(s) no aparecen en tu paquete de "
+                    f"entrenamiento, p. ej. {fuera[:3]}. No es un error y pueden ser "
+                    "correctas, pero revisa que no sea un nombre mal escrito."
+                )
         return problemas
 
     # --------------------------------------------------------------- evaluación
