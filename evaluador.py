@@ -18,8 +18,11 @@ Dos archivos opcionales en el directorio de datos cambian qué se cuenta:
                                  a oído contestó "¿hay un ave?", nunca "¿es esta
                                  especie?". Las genera `preparar_ignoradas.py`.
 
-    etiquetas_entrenamiento.csv  Las que se les entregaron a los equipos.
-                                 Habilitan `f1_no_visto` en el resultado.
+    etiquetas_entrenamiento.csv  Las que se les entregaron a los equipos. Hacen
+                                 dos cosas: habilitan `f1_no_visto`, y **acotan el
+                                 puntaje a esas especies** —lo que caiga fuera se
+                                 descuenta del ground truth y de la entrega, así
+                                 que no suma ni resta—.
 
 Sin ellos el evaluador se comporta igual que antes.
 """
@@ -174,6 +177,16 @@ class Evaluador:
         d = d.assign(_esp=_capitalizar(d[col]), _id=self._resolver_id(d))
         d = d[d["_esp"].ne("") & d["_esp"].ne("Nan") & d["_esp"].ne("None")]
 
+        # Solo se puntúan las especies del paquete de entrenamiento. El filtro se
+        # aplica igual al ground truth y a la entrega, así que una especie de fuera
+        # no suma ni resta: no cuenta como acierto ni como falso positivo. Es lo
+        # que promete el enunciado —no evaluamos nada que no hayamos enseñado— y
+        # deja fuera del puntaje la cola de especies con uno o dos registros.
+        # Sin `etiquetas_entrenamiento.csv` la lista queda vacía y no se restringe
+        # nada: el evaluador se comporta como antes.
+        if self.especies_entregadas:
+            d = d[d["_esp"].isin(self.especies_entregadas)]
+
         if nivel == "presencia":
             return set(zip(d["_id"], d["_esp"]))
 
@@ -249,9 +262,10 @@ class Evaluador:
             fuera = sorted(set(esp) - set(self.especies_entregadas))
             if fuera:
                 problemas.append(
-                    f"Aviso: {len(fuera)} especie(s) no aparecen en tu paquete de "
-                    f"entrenamiento, p. ej. {fuera[:3]}. No es un error y pueden ser "
-                    "correctas, pero revisa que no sea un nombre mal escrito."
+                    f"Aviso: {len(fuera)} especie(s) no están en tu paquete de "
+                    f"entrenamiento, p. ej. {fuera[:3]}. Esas filas no se puntúan "
+                    "—ni a favor ni en contra—, así que no es un error, pero si "
+                    "esperabas que contaran revisa que no sea un nombre mal escrito."
                 )
         return problemas
 
@@ -351,8 +365,11 @@ class Evaluador:
 
         rng = np.random.default_rng(0)
         n_azar = max(int(len(base) * 0.02), 1)
+        # Sortea entre las especies que se puntúan: si sorteara sobre todo el GT,
+        # buena parte de las filas se descartaría y el baseline no mediría el azar.
+        candidatas = self.especies_entregadas or self.especies
         azar = base.sample(n=n_azar, random_state=0).assign(
-            scientific_name=rng.choice(self.especies, size=n_azar))
+            scientific_name=rng.choice(candidatas, size=n_azar))
 
         pruebas = {
             "· nada (todo negativo)": base.iloc[:0].assign(scientific_name=""),
