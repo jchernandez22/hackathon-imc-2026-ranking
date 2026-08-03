@@ -70,7 +70,14 @@ EQUIPOS = almacen.cargar_equipos()
 # exactamente lo que se sacó del README cuando este repo pasó a ser público.
 # Falla cerrada a propósito: si no está `etiquetas_entrenamiento.csv`, el
 # desglose se apaga en vez de caer de vuelta al ground truth completo.
-ESPECIES_VISIBLES = ev.especies_entregadas
+#
+# Se calcula acá y con `getattr` en vez de leer `ev.especies_entregadas`: el
+# `Evaluador` viene de `@st.cache_resource`, así que tras un despliegue que solo
+# sincroniza archivos —sin reiniciar el proceso— la instancia cacheada todavía es
+# de la clase vieja, y pedirle un atributo nuevo tumba la app entera con un
+# AttributeError. Depender solo de `entrenamiento`, que ya existía, la deja
+# arrancar igual; si tampoco está, el conjunto queda vacío y las vistas se apagan.
+ESPECIES_VISIBLES = sorted({k[-1] for k in getattr(ev, "entrenamiento", ())})
 
 st.title("🐦 " + cfg.NOMBRE_EVENTO)
 st.caption(
