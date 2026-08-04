@@ -38,7 +38,7 @@ NIVEL = "segmento"          # "segmento" (exigente) o "presencia"
 # deciden el orden en cualquiera de las dos versiones.
 METRICA = "f1_no_visto"
 ETIQUETA_METRICA = "F1 no visto"   # como se nombra en pantalla
-ENVIOS_POR_DIA = 5          # cuota por equipo; frena el sondeo del leaderboard
+ENVIOS_POR_DIA = 12         # cuota por equipo; frena el sondeo del leaderboard
 BOOTSTRAP_N = 2000          # remuestreos para el intervalo de confianza
 
 # --- Evento ------------------------------------------------------------------
