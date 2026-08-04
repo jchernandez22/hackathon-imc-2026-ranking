@@ -112,6 +112,10 @@ def grafico_ranking(mejores: pd.DataFrame, metrica: str = cfg.METRICA):
 def grafico_progreso(log: pd.DataFrame, metrica: str = cfg.METRICA):
     """Mejor puntaje acumulado de cada equipo a lo largo del evento."""
     d = log.sort_values("ts").copy()
+    # A hora de Chile: el log viene en la hora del contenedor, que es UTC. Ver
+    # `cfg.DESFASE_GRAFICO_H`. Es un corrimiento parejo, así que no altera ni el
+    # orden ni el `cummax` de más abajo; solo dónde caen las marcas del eje.
+    d["ts"] = d["ts"] + pd.Timedelta(hours=cfg.DESFASE_GRAFICO_H)
     d["mejor"] = d.groupby("equipo")[metrica].cummax()
     # Orden fijo por posición final: el color sigue al equipo, no a su puesto
     # dentro de un filtro.

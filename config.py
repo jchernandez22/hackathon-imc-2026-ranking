@@ -38,13 +38,22 @@ NIVEL = "segmento"          # "segmento" (exigente) o "presencia"
 # deciden el orden en cualquiera de las dos versiones.
 METRICA = "f1_no_visto"
 ETIQUETA_METRICA = "F1 no visto"   # como se nombra en pantalla
-ENVIOS_POR_DIA = 12         # cuota por equipo; frena el sondeo del leaderboard
+ENVIOS_POR_DIA = 20         # cuota por equipo; frena el sondeo del leaderboard
 BOOTSTRAP_N = 2000          # remuestreos para el intervalo de confianza
 
 # --- Evento ------------------------------------------------------------------
 NOMBRE_EVENTO = "Hackathon IMC 2026"
 INICIO = "2026-08-03 11:00"   # lunes 11:00
 CIERRE = "2026-08-04 11:00"   # martes 11:00
+
+# El contenedor de Streamlit Cloud corre en UTC y `almacen.ahora()` usa
+# `datetime.now()`, así que el log guarda UTC mientras el evento se vive en hora
+# de Chile (UTC-4 en agosto). Esto corrige **solo el eje del gráfico de
+# progreso**: no toca el log ni los nombres de archivo de los envíos, que llevan
+# el timestamp adentro y desincronizarlos en pleno evento era el riesgo real.
+# Arreglo de verdad —zona horaria explícita al escribir y al leer— después del
+# cierre; ahí este desfase se elimina.
+DESFASE_GRAFICO_H = -4
 
 # Contraseña del panel de organización. Sin valor por defecto a propósito: este
 # archivo va al repo, así que cualquier default es una contraseña publicada.
